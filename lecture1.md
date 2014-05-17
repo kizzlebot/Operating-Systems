@@ -18,22 +18,22 @@
 - A model of a networked os adds another layer (5-sided pyramid)
 -----------------------
 - Main memory management
-    - keeps track of address space of OS which is needed by multiuser environment
+  - keeps track of address space of OS which is needed by multiuser environment
 -----------------------
 - Processor management
-    - Allocates CPU time for processes (scheduling)
-    - 2 types
-        - Job sched
-        - Process sched
+  - Allocates CPU time for processes (scheduling)
+  - 2 types
+    - Job sched
+    - Process sched
 -----------------------
 - Device management
-    - Responsibility  
-        - Choose resource allocation strategy for peripheral
+  - Responsibility  
+    - Choose resource allocation strategy for peripheral
 -----------------------
 - File management
-    - File access permissions
-        - Binary exec
-        - File read/write
+  - File access permissions
+    - Binary exec
+    - File read/write
 
 
 
