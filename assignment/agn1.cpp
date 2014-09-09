@@ -57,12 +57,15 @@ int background(char ** args);
 sig_atomic_t atomic = 0 ;
 sig_atomic_t ChildExitStatus = 0 ;
 
+int a2i(char *s);
 void handler(int sigal_number){
     int exitStatus = 0 ;
     wait(&exitStatus);
-    fprintf(stdout, "Child Exit: %d\n", exitStatus);
+    fprintf(stdout, "(handler) Child Exit: %d\n", exitStatus);
     ChildExitStatus = exitStatus;
 }
+
+int murder(pid_t pid);
 
 int main (int argc, char ** argv){
     char buf[MAX_BUFFER];                      // line buffer
@@ -70,7 +73,7 @@ int main (int argc, char ** argv){
     char ** arg;                               // working pointer thru args
     char prompt[] = "==> " ;                    // shell prompt
 
-    // Signals set up
+    // set up the signal
     struct sigaction sa ;          // sigaction sets the signal disposition
     memset(&sa, 0, sizeof(sa));    // Set memory area sa with size of sa to 0
     sa.sa_handler = &handler;      // Give struct member address to function to execute
@@ -108,19 +111,31 @@ int main (int argc, char ** argv){
 
                 else if ( strcmp(args[0],"run") == 0 ){               // "run"   command
                     // if command was supplied
-                    if ( args[1] )
-                        run(args);
+                    if ( args[1] ) run(args);
                     // else tell user we need cmd arg
                     else{
                         fputs("Requires command to run", stderr);
                         continue ;
                     }
                 }
-                else if ( strcmp(args[0],"background") == 0 ){               // "run"   command
+
+                else if ( strcmp(args[0],"background") == 0 ){        // "background"   command
                     // if command was supplied
-                    if ( args[1] )
-                        background(args);
+                    if ( args[1] ){
+                        pid_t child_pid = background(args);
+                        fprintf(stdout, "Child_PID: %d\n", child_pid);
+                    }
+
                     // else tell user we need cmd arg
+                    else{
+                        fputs("Requires command to run", stderr);
+                        continue ;
+                    }
+                }
+                else if ( strcmp(args[0],"murder") == 0 ){
+                    if ( args[1] ) {
+                        murder(a2i(args[1]));
+                    }
                     else{
                         fputs("Requires command to run", stderr);
                         continue ;
@@ -139,7 +154,27 @@ int main (int argc, char ** argv){
     return 0;
 }
 
+int a2i(char *s){
+    int sign=1;
+    if(*s == '-')
+        sign = -1;
+    s++;
+    int num=0;
+    while(*s){
+        num=((*s)-'0')+num*10;
+        s++;
+    }
+    return num*sign;
+}
 
+int murder(pid_t pid){
+    int stat = kill(pid, SIGTERM);
+    if ( stat != 0 ) {
+        fprintf(stdout, "Error\n");
+        return -1 ;
+    }
+    return 0 ;
+}
 int run(char ** args){
     int child_wait;
     int child_pid = spawn( *(args+1), args+1 );
@@ -151,10 +186,7 @@ int run(char ** args){
 }
 
 int background(char ** args){
-    int child_wait;
-    int child_pid = spawn( *(args+1), args+1 );
-
-    return 0 ;
+    return spawn( *(args+1), args+1 );
 }
 
 
