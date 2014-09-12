@@ -50,28 +50,22 @@
  *                or exec a cmd via execvp
  *----------------------------------------------------------------------------------------*/
 int spawn( char * cmd, char ** arg_list );
-
+void handler(int sigal_number);
 int run(char ** args);
 int background(char ** args);
+int murder(pid_t pid);
+int a2i(char *s);
 
 sig_atomic_t atomic = 0 ;
 sig_atomic_t ChildExitStatus = 0 ;
 
-int a2i(char *s);
-void handler(int sigal_number){
-    int exitStatus = 0 ;
-    wait(&exitStatus);
-    fprintf(stdout, "(handler) Child Exit: %d\n", exitStatus);
-    ChildExitStatus = exitStatus;
-}
-
-int murder(pid_t pid);
 
 int main (int argc, char ** argv){
     char buf[MAX_BUFFER];                      // line buffer
     char * args[MAX_ARGS];                     // pointers to arg strings
     char ** arg;                               // working pointer thru args
     char prompt[] = "==> " ;                    // shell prompt
+    int child_pid ;
 
     // set up the signal
     struct sigaction sa ;          // sigaction sets the signal disposition
@@ -102,16 +96,19 @@ int main (int argc, char ** argv){
             // If anything was read other than newline/whitespace/tab
             if (args[0]) {
 
-                /* check for internal/external commands [clear, quit, run, background] */
+                /* check for commands [clear, quit, run, background] */
                 if (strcmp(args[0], "clear") == 0 ) {                // "clear" command
-                    system("clear");
+                    system("clear"); // call the shell cmd
                     continue;
                 }
                 else if ( strcmp(args[0],"quit") == 0 ) break;        // "quit"  command
 
                 else if ( strcmp(args[0],"run") == 0 ){               // "run"   command
                     // if command was supplied
-                    if ( args[1] ) run(args);
+                    if ( args[1] ) {
+                        child_pid = run(args);
+                        fprintf(stdout, "Exited with: %d", child_pid);
+                    }
                     // else tell user we need cmd arg
                     else{
                         fputs("Requires command to run", stderr);
@@ -123,7 +120,7 @@ int main (int argc, char ** argv){
                     // if command was supplied
                     if ( args[1] ){
                         pid_t child_pid = background(args);
-                        fprintf(stdout, "Child_PID: %d\n", child_pid);
+                        fprintf(stdout, "Started with: %d", child_pid);
                     }
 
                     // else tell user we need cmd arg
@@ -132,9 +129,12 @@ int main (int argc, char ** argv){
                         continue ;
                     }
                 }
-                else if ( strcmp(args[0],"murder") == 0 ){
+                else if ( strcmp(args[0],"murder") == 0 ){              // "murder" command
                     if ( args[1] ) {
-                        murder(a2i(args[1]));
+                        int stat = murder(atoi(args[1]));
+                        if ( stat != 0 ){
+                            fprintf(stdout, "Murdah'd %s", args[1]);
+                        }
                     }
                     else{
                         fputs("Requires command to run", stderr);
@@ -142,51 +142,49 @@ int main (int argc, char ** argv){
                     }
                 }
 
-                /* else pass command onto OS (or in this instance, print them out) */
-                else{
-                    arg = args;                                 // Move ptr back to front of array
-                    while (*arg) fprintf(stdout,"%s ",*arg++);  // Print *arg until null
+                else{                                                   // any other commands get echoed
+                    arg = args;                                         // Move ptr back to front of array
+                    while (*arg) fprintf(stdout,"%s ",*arg++);          // Print *arg until null
                 }
-                fputs ("\n", stdout);                           // print a newline and repeat
+
+                fputs ("\n", stdout);                                   // print a newline and repeat
             }
         }
     }
     return 0;
 }
 
-int a2i(char *s){
-    int sign=1;
-    if(*s == '-')
-        sign = -1;
-    s++;
-    int num=0;
-    while(*s){
-        num=((*s)-'0')+num*10;
-        s++;
-    }
-    return num*sign;
+
+void handler(int signal_number){
+    int exitStatus = 0 ;
+    wait(&exitStatus);
+    ChildExitStatus = exitStatus;
+    fprintf(stdout, "Process exited");
 }
 
 int murder(pid_t pid){
     int stat = kill(pid, SIGTERM);
     if ( stat != 0 ) {
         fprintf(stdout, "Error\n");
-        return -1 ;
+        return 0;
     }
-    return 0 ;
+    return stat ;
 }
 int run(char ** args){
     int child_wait;
     int child_pid = spawn( *(args+1), args+1 );
+    int rtn ;
 
     wait(&child_wait);
-    if ( WIFEXITED (child_wait) )
-        fprintf(stdout, "Child process exited: %d\n", WEXITSTATUS(child_wait));
-    return 0 ;
+    if ( WIFEXITED (child_wait) ){
+        rtn = WEXITSTATUS(child_wait);
+    }
+    return child_pid;
 }
 
-int background(char ** args){
-    return spawn( *(args+1), args+1 );
+pid_t background(char ** args){
+    pid_t child_pid = spawn( *(args+1), args+1 );
+    return ( child_pid != 0 ) ? child_pid : -1 ;
 }
 
 

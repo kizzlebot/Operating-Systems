@@ -12,17 +12,7 @@ int main(){
     char * words = (char *) malloc(sizeof(char)*20);
     printf("Enter: ");
     scanf("%s", words);
-    unsigned int result = a2i(words);
-    printf("%d",result);
+    int rtn = atoi(words);
+    printf("%d",rtn);
 }
 
-int a2i(char *s){
-    int len = strlen(s);
-    unsigned int sum = 0 ;
-    int i = 0 ;
-    char * t = s ;
-    for ( i = len ; i > -1 ; i-- ){
-        printf('%s',*s);
-    }
-    return sum ;
-}
